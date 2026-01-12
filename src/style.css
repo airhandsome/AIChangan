@@ -1522,6 +1522,42 @@ body {
   transform: scale(1.2);
 }
 
+/* 生成计时器样式 */
+.generation-timer {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(212, 175, 55, 0.2);
+  border-radius: 20px;
+  padding: 8px 16px;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+}
+
+.timer-icon {
+  font-size: 1.2rem;
+  animation: timerPulse 2s ease-in-out infinite;
+}
+
+.timer-text {
+  color: var(--primary-gold);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+}
+
+@keyframes timerPulse {
+  0%, 100% { 
+    transform: scale(1); 
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.1); 
+    opacity: 0.8;
+  }
+}
+
 /* 进度条 */
 .progress-container {
   position: absolute;
@@ -1583,6 +1619,15 @@ body {
   
   .generation-text {
     width: 300px;
+  }
+  
+  .generation-timer {
+    margin-top: 15px;
+    padding: 6px 12px;
+  }
+  
+  .timer-text {
+    font-size: 0.85rem;
   }
   
   .main-title {
@@ -1712,6 +1757,27 @@ body {
     padding: 15px;
   }
 }
+/* 可点击图片样式 */
+.clickable-image {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.clickable-image:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4);
+  filter: brightness(1.1);
+}
+
+.result-image.clickable-image:hover {
+  border-color: var(--secondary-gold);
+}
+
+.qr-code.clickable-image:hover {
+  border-color: var(--secondary-gold);
+  box-shadow: 0 4px 15px var(--shadow-warm);
+}
+
 /* 二维码样式 */
 .qr-section {
   background: rgba(212, 175, 55, 0.1);

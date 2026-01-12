@@ -31,6 +31,11 @@
             <div class="progress-dots">
               <span v-for="i in 3" :key="i" class="dot" :class="{ active: (Date.now() / 500) % 3 >= i - 1 }"></span>
             </div>
+            <!-- 计时器显示 -->
+            <div class="generation-timer">
+              <span class="timer-icon">⏱️</span>
+              <span class="timer-text">已用时: {{ generationTimer }}秒</span>
+            </div>
           </div>
           
           <!-- 进度条 -->
@@ -474,14 +479,26 @@
       <h3>🎭 您的西安历史文化体验</h3>
       <div class="result-container">
         <div class="result-image-container">
-          <img :src="resultImage" alt="历史文化体验结果" class="result-image">
+          <img 
+            :src="resultImage" 
+            alt="历史文化体验结果" 
+            class="result-image clickable-image"
+            @click="previewResultImage"
+            title="点击查看大图"
+          >
         </div>
         
         <div class="result-info">
           <!-- 二维码区域 -->
           <div v-if="qrCodeUrl" class="qr-section">
             <div class="qr-container">
-              <img :src="qrCodeUrl" alt="扫码直接下载" class="qr-code">
+              <img 
+                :src="qrCodeUrl" 
+                alt="扫码直接下载" 
+                class="qr-code clickable-image"
+                @click="previewQRCode"
+                title="点击查看大图"
+              >
               <p class="qr-text">扫码直接下载</p>
             </div>
           </div>
@@ -552,6 +569,15 @@
   
   <!-- 图片查看页面 -->
   <ImageViewer v-else-if="isViewPage" />
+
+  <!-- 图片预览模态框 -->
+  <ImageModal
+    :visible="showImageModal"
+    :imageUrl="modalImageUrl"
+    :imageTitle="modalImageTitle"
+    :imageDescription="modalImageDescription"
+    @close="closeImageModal"
+  />
 </template>
 
 <script>
@@ -562,12 +588,14 @@ import { MUSEUM_CONFIG } from './config/museum.js'
 import { generateXianCulturalPrompt, generateCeramicArtPrompt, getAvailableOptions, SMART_COMBINATIONS, getRecommendedOptionsForIdentity, TV_SERIES_TEMPLATES, CERAMIC_ART_TEMPLATES } from './config/prompts.js'
 import DownloadPage from './components/DownloadPage.vue'
 import ImageViewer from './components/ImageViewer.vue'
+import ImageModal from './components/ImageModal.vue'
 
 export default {
   name: 'XianCulturalApp',
   components: {
     DownloadPage,
-    ImageViewer
+    ImageViewer,
+    ImageModal
   },
   setup() {
     const sourceImage = ref(null)
@@ -581,6 +609,7 @@ export default {
       title: '正在创造历史奇迹',
       subtitle: '请稍候，AI正在为您生成专属的历史文化体验'
     })
+    const generationTimer = ref(0) // 生成计时器（秒）
     const errorMessage = ref('')
     const showAdvanced = ref(false)
     const showTvTemplates = ref(false)
@@ -591,6 +620,12 @@ export default {
     const selectedGender = ref('male') // 默认选择男性
     const editingTemplate = ref(null)
     const customTemplatePrompts = ref({})
+    
+    // 图片预览模态框状态
+    const showImageModal = ref(false)
+    const modalImageUrl = ref('')
+    const modalImageTitle = ref('')
+    const modalImageDescription = ref('')
     
     const fileInput = ref(null)
 
@@ -794,7 +829,13 @@ export default {
       
       isGenerating.value = true
       generationProgress.value = 0
+      generationTimer.value = 0 // 重置计时器
       errorMessage.value = ''
+      
+      // 启动计时器
+      const timerInterval = setInterval(() => {
+        generationTimer.value++
+      }, 1000)
       
       // 模拟生成进度和状态更新
       const progressSteps = [
@@ -878,6 +919,7 @@ export default {
         
         // 完成进度
         clearInterval(progressInterval)
+        clearInterval(timerInterval) // 清除计时器
         generationProgress.value = 100
         generationStatus.value = {
           title: '生成完成！',
@@ -912,6 +954,7 @@ export default {
         
       } catch (error) {
         clearInterval(progressInterval)
+        clearInterval(timerInterval) // 清除计时器
         console.error('图片生成失败:', error)
         
         // 根据错误类型提供更具体的错误信息
@@ -1090,6 +1133,43 @@ export default {
       })
     }
 
+    // 图片预览相关函数
+    const openImageModal = (imageUrl, title = '', description = '') => {
+      modalImageUrl.value = imageUrl
+      modalImageTitle.value = title
+      modalImageDescription.value = description
+      showImageModal.value = true
+    }
+
+    const closeImageModal = () => {
+      showImageModal.value = false
+      modalImageUrl.value = ''
+      modalImageTitle.value = ''
+      modalImageDescription.value = ''
+    }
+
+    // 点击生成的图片预览
+    const previewResultImage = () => {
+      if (resultImage.value) {
+        openImageModal(
+          resultImage.value,
+          '西安历史文化体验作品',
+          '通过AI技术生成的个人专属历史文化体验图像'
+        )
+      }
+    }
+
+    // 点击二维码预览
+    const previewQRCode = () => {
+      if (qrCodeUrl.value) {
+        openImageModal(
+          qrCodeUrl.value,
+          '扫码下载高清图片',
+          '扫描二维码可直接下载您的专属历史文化体验作品'
+        )
+      }
+    }
+
     // 初始化
     onMounted(() => {
       console.log('✅ 豆包API已配置，可以开始生成图像')
@@ -1103,6 +1183,7 @@ export default {
       isGenerating,
       generationProgress,
       generationStatus,
+      generationTimer,
       errorMessage,
       showAdvanced,
       showTvTemplates,
@@ -1113,6 +1194,10 @@ export default {
       selectedGender,
       editingTemplate,
       customTemplatePrompts,
+      showImageModal,
+      modalImageUrl,
+      modalImageTitle,
+      modalImageDescription,
       customOptions,
       availableOptions,
       canGenerate,
@@ -1152,7 +1237,11 @@ export default {
       getIdentityName,
       getLandmarkName,
       getCostumeName,
-      generateQRCode
+      generateQRCode,
+      openImageModal,
+      closeImageModal,
+      previewResultImage,
+      previewQRCode
     }
   }
 }
