@@ -1,6 +1,48 @@
 <template>
   <!-- 主页面 -->
   <div v-if="isHomePage" class="container">
+    <!-- 全屏生成动画遮罩 -->
+    <div v-if="isGenerating" class="generation-overlay">
+      <div class="generation-animation">
+        <div class="animation-container">
+          <!-- 中央主要动画 -->
+          <div class="main-animation">
+            <div class="rotating-circle">
+              <div class="inner-circle">
+                <div class="ai-icon">🎨</div>
+              </div>
+            </div>
+            <div class="pulse-rings">
+              <div class="pulse-ring ring-1"></div>
+              <div class="pulse-ring ring-2"></div>
+              <div class="pulse-ring ring-3"></div>
+            </div>
+          </div>
+          
+          <!-- 粒子效果 -->
+          <div class="particles">
+            <div v-for="i in 20" :key="i" class="particle" :style="getParticleStyle(i)"></div>
+          </div>
+          
+          <!-- 文字动画 -->
+          <div class="generation-text">
+            <h2 class="main-title">{{ generationStatus.title }}</h2>
+            <p class="sub-title">{{ generationStatus.subtitle }}</p>
+            <div class="progress-dots">
+              <span v-for="i in 3" :key="i" class="dot" :class="{ active: (Date.now() / 500) % 3 >= i - 1 }"></span>
+            </div>
+          </div>
+          
+          <!-- 进度条 -->
+          <div class="progress-container">
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: generationProgress + '%' }"></div>
+            </div>
+            <div class="progress-text">{{ Math.round(generationProgress) }}%</div>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- 西安文化馆标题区域 -->
     <header class="header">
       <h1>西安历史文化数字体验</h1>
@@ -534,6 +576,11 @@ export default {
     const sourceFile = ref(null)
     const isDragging = ref(false)
     const isGenerating = ref(false)
+    const generationProgress = ref(0)
+    const generationStatus = ref({
+      title: '正在创造历史奇迹',
+      subtitle: '请稍候，AI正在为您生成专属的历史文化体验'
+    })
     const errorMessage = ref('')
     const showAdvanced = ref(false)
     const showTvTemplates = ref(false)
@@ -630,6 +677,17 @@ export default {
       return hints[preservationType] || ''
     }
 
+    // 粒子动画样式计算
+    const getParticleStyle = (index) => {
+      const angle = (index * 360) / 20
+      const delay = index * 0.1
+      return {
+        '--angle': angle + 'deg',
+        '--delay': delay + 's'
+      }
+    }
+
+    // 应用智能推荐组合
     const applySmartCombination = (combination) => {
       customOptions.value = {
         ...combination.config,
@@ -735,7 +793,31 @@ export default {
       }
       
       isGenerating.value = true
+      generationProgress.value = 0
       errorMessage.value = ''
+      
+      // 模拟生成进度和状态更新
+      const progressSteps = [
+        { progress: 10, title: '分析人像特征', subtitle: '正在识别面部特征和表情...' },
+        { progress: 25, title: '构建历史场景', subtitle: '正在创建西安古都背景...' },
+        { progress: 40, title: '融合文化元素', subtitle: '正在添加历史文化细节...' },
+        { progress: 60, title: 'AI智能生成中', subtitle: '正在运用深度学习技术...' },
+        { progress: 80, title: '优化画面效果', subtitle: '正在调整色彩和光影...' },
+        { progress: 95, title: '即将完成', subtitle: '正在进行最后的细节处理...' }
+      ]
+      
+      let currentStep = 0
+      const progressInterval = setInterval(() => {
+        if (currentStep < progressSteps.length) {
+          const step = progressSteps[currentStep]
+          generationProgress.value = step.progress
+          generationStatus.value = {
+            title: step.title,
+            subtitle: step.subtitle
+          }
+          currentStep++
+        }
+      }, 800)
       
       try {
         let fullPrompt = ''
@@ -794,28 +876,42 @@ export default {
           apiOptions
         )
         
-        // 设置生成结果
-        resultImage.value = result.imageUrl
+        // 完成进度
+        clearInterval(progressInterval)
+        generationProgress.value = 100
+        generationStatus.value = {
+          title: '生成完成！',
+          subtitle: '您的专属历史文化体验已经准备就绪'
+        }
         
-        // 生成二维码URL（用于直接下载）
-        generateQRCode(result.imageUrl)
-        
-        console.log('图像生成成功:', {
-          resultId: result.resultId,
-          imageUrl: result.imageUrl ? '已获取' : '未获取',
-          model: result.model,
-          size: result.size
-        })
-        
-        // 滚动到结果区域
+        // 短暂延迟后显示结果
         setTimeout(() => {
-          const resultSection = document.querySelector('.result-section')
-          if (resultSection) {
-            resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
-        }, 100)
+          // 设置生成结果
+          resultImage.value = result.imageUrl
+          
+          // 生成二维码URL（用于直接下载）
+          generateQRCode(result.imageUrl)
+          
+          console.log('图像生成成功:', {
+            resultId: result.resultId,
+            imageUrl: result.imageUrl ? '已获取' : '未获取',
+            model: result.model,
+            size: result.size
+          })
+          
+          isGenerating.value = false
+          
+          // 滚动到结果区域
+          setTimeout(() => {
+            const resultSection = document.querySelector('.result-section')
+            if (resultSection) {
+              resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }
+          }, 100)
+        }, 1000)
         
       } catch (error) {
+        clearInterval(progressInterval)
         console.error('图片生成失败:', error)
         
         // 根据错误类型提供更具体的错误信息
@@ -834,7 +930,6 @@ export default {
         }
         
         errorMessage.value = errorMsg
-      } finally {
         isGenerating.value = false
       }
     }
@@ -1006,6 +1101,8 @@ export default {
       qrCodeUrl,
       isDragging,
       isGenerating,
+      generationProgress,
+      generationStatus,
       errorMessage,
       showAdvanced,
       showTvTemplates,
@@ -1047,6 +1144,7 @@ export default {
       resetCeramicTemplate,
       getTemplatePrompt,
       getCeramicTemplatePrompt,
+      getParticleStyle,
       getImageSize,
       shouldAddWatermark,
       getDisplaySize,
